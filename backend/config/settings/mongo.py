@@ -1,12 +1,11 @@
 from mongoengine import connect
-import os
 
 def init_mongo():
     connect(
-        db=os.getenv("MONGO_DB", "inventario_db"),
-        host=os.getenv("MONGO_HOST", "mongo"),
-        port=int(os.getenv("MONGO_PORT", 27017)),
-        username=os.getenv("MONGO_USER"),
-        password=os.getenv("MONGO_PASSWORD"),
-        authentication_source="admin"
+        db="inventario_db",
+        host="mongo",
+        port=27017,
+        alias="default",
+        serverSelectionTimeoutMS=1000,
+        connectTimeoutMS=1000,
     )
