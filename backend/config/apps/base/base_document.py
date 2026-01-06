@@ -5,6 +5,7 @@ import mongoengine as me
 class BaseDocument(me.Document):
     """
     Documento base para todos los modelos MongoEngine.
+    Incluye auditoría básica y soft delete.
     """
 
     created_at = me.DateTimeField(default=lambda: datetime.now(timezone.utc))
@@ -18,3 +19,8 @@ class BaseDocument(me.Document):
     def save(self, *args, **kwargs):
         self.updated_at = datetime.now(timezone.utc)
         return super().save(*args, **kwargs)
+
+    def delete(self, *args, **kwargs):
+        raise Exception(
+            "Borrado físico prohibido. Use soft delete (is_active=False)."
+        )

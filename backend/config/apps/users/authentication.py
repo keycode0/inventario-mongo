@@ -25,9 +25,9 @@ class JWTAuthentication(BaseAuthentication):
         if not payload:
             raise AuthenticationFailed("Token inválido o expirado")
 
-        user = User.objects(id=payload["user_id"]).first()
+        user = User.objects(id=payload["user_id"], is_active=True).first()
 
-        if not user or not user.is_active:
+        if not user:
             raise AuthenticationFailed("Usuario no válido o inactivo")
 
         return (user, None)
