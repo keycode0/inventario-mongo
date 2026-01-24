@@ -21,6 +21,9 @@ class BaseDocument(me.Document):
         return super().save(*args, **kwargs)
 
     def delete(self, *args, **kwargs):
-        raise Exception(
-            "Borrado físico prohibido. Use soft delete (is_active=False)."
-        )
+        """
+        Soft delete por defecto.
+        """
+        self.is_active = False
+        self.updated_at = datetime.now(timezone.utc)
+        return super().save()
