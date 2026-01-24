@@ -11,8 +11,19 @@ class SubCategoryListCreateView(APIView):
     permission_classes = [SubCategoryPermission]
 
     def get(self, request):
-        subs = SubCategory.objects(is_active=True)
-        serializer = SubCategorySerializer(subs, many=True)
+        queryset = SubCategory.objects(is_active=True)
+
+        category_id = request.query_params.get("category_id")
+        if category_id:
+            try:
+                queryset = queryset.filter(categoria_id=category_id)
+            except Exception:
+                return Response(
+                    {"detail": "Invalid category_id"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        serializer = SubCategorySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):

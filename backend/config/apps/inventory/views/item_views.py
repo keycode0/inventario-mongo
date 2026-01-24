@@ -4,6 +4,7 @@ from rest_framework import status
 
 from config.apps.inventory.models.item import Item
 from config.apps.inventory.serializers.item_serializer import ItemSerializer
+from config.apps.inventory.services.item_service import ALLOWED_ITEM_STATES
 from config.apps.users.permissions.item_permissions import ItemPermission
 
 
@@ -11,8 +12,30 @@ class ItemListCreateView(APIView):
     permission_classes = [ItemPermission]
 
     def get(self, request):
-        items = Item.objects(is_active=True)
-        serializer = ItemSerializer(items, many=True)
+        queryset = Item.objects(is_active=True)
+
+        # 🔹 filtro por estado
+        estado = request.query_params.get("estado")
+        if estado:
+            if estado not in ALLOWED_ITEM_STATES:
+                return Response(
+                    {"detail": "Invalid estado"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            queryset = queryset.filter(estado=estado)
+
+        # 🔹 filtro por subcategoría
+        subcategoria_id = request.query_params.get("subcategoria_id")
+        if subcategoria_id:
+            try:
+                queryset = queryset.filter(subcategoria_id=subcategoria_id)
+            except Exception:
+                return Response(
+                    {"detail": "Invalid subcategoria_id"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+        serializer = ItemSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):

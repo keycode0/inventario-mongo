@@ -1,7 +1,7 @@
 from config.apps.inventory.models.item import Item
 
 
-ALLOWED_ITEM_STATES = ["operativo", "dañado", "obsoleto", "baja"]
+ALLOWED_ITEM_STATES = ["operativo", "dañado", "baja"]
 
 
 def soft_delete_item(item: Item) -> None:

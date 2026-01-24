@@ -16,10 +16,19 @@ class MovementListCreateView(APIView):
     permission_classes = [MovementPermission]
 
     def get(self, request):
-        movements = Movement.objects()
-        serializer = MovementSerializer(movements, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        queryset = Movement.objects()
 
+        item_id = request.query_params.get("item_id")
+        if item_id:
+            queryset = queryset.filter(item=item_id)
+
+        tipo = request.query_params.get("tipo_movimiento")
+        if tipo:
+            queryset = queryset.filter(tipo_movimiento=tipo)
+
+        serializer = MovementSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def post(self, request):
         serializer = MovementSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)

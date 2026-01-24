@@ -4,8 +4,12 @@ from rest_framework import status
 
 from config.apps.inventory.models.facility import Facility
 from config.apps.inventory.serializers.facility_serializer import FacilitySerializer
-from config.apps.inventory.services.facility_service import soft_delete_facility
+from config.apps.inventory.services.facility_service import (
+    soft_delete_facility,
+    ALLOWED_FACILITY_STATES,
+)
 from config.apps.users.permissions.facility_permissions import FacilityPermission
+from config.apps.users.models.user import User
 
 class FacilityListCreateView(APIView):
     """
@@ -15,8 +19,42 @@ class FacilityListCreateView(APIView):
     permission_classes = [FacilityPermission]
 
     def get(self, request):
-        facilities = Facility.objects(is_active=True)
-        serializer = FacilitySerializer(facilities, many=True)
+        queryset = Facility.objects(is_active=True)
+
+        # 🔹 Filtro por estado
+        estado = request.query_params.get("estado")
+        if estado:
+            if estado not in ALLOWED_FACILITY_STATES:
+                return Response(
+                    {"detail": "Invalid estado"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            queryset = queryset.filter(estado=estado)
+
+        # 🔹 Filtro por técnico
+        tecnico_id = request.query_params.get("tecnico_id")
+        if tecnico_id:
+            try:
+                tecnico = User.objects(
+                    id=tecnico_id,
+                    is_active=True,
+                    rol="tecnico"
+                ).first()
+            except Exception:
+                return Response(
+                    {"detail": "Invalid tecnico_id"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            if not tecnico:
+                return Response(
+                    {"detail": "Tecnico not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+
+            queryset = queryset.filter(tecnico_id=tecnico)
+
+        serializer = FacilitySerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
