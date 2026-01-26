@@ -11,6 +11,7 @@ from config.apps.inventory.services.facility_service import (
 from config.apps.users.permissions.facility_permissions import FacilityPermission
 from config.apps.users.models.user import User
 
+
 class FacilityListCreateView(APIView):
     """
     GET  -> Listar instalaciones activas
@@ -63,6 +64,7 @@ class FacilityListCreateView(APIView):
         serializer.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+
 class FacilityDetailView(APIView):
     """
     PUT    -> Actualizar instalación
@@ -77,6 +79,20 @@ class FacilityDetailView(APIView):
                 {"detail": "Instalación no encontrada"},
                 status=status.HTTP_404_NOT_FOUND
             )
+
+        if "items_planificados" in request.data:
+            if facility.estado == "finalizada":
+                return Response(
+                {
+                    "detail": (
+                        "No se pueden modificar items "
+                        "en una instalación finalizada"
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+
 
         serializer = FacilitySerializer(facility, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)

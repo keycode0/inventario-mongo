@@ -1,42 +1,45 @@
 from rest_framework import serializers
+from bson import ObjectId
+
 from config.apps.inventory.models.movement import Movement
-from config.apps.inventory.models.item import Item
-from config.apps.users.models.user import User
 
 
 class MovementSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
 
-    item_id = serializers.CharField(write_only=True)
-    responsable_id = serializers.CharField(write_only=True)
+    item = serializers.SerializerMethodField()
+    responsable = serializers.SerializerMethodField()
 
     tipo_movimiento = serializers.CharField()
-    origen = serializers.DictField()
-    destino = serializers.DictField()
-    fecha = serializers.DateTimeField(required=False)
+    origen = serializers.SerializerMethodField()
+    destino = serializers.SerializerMethodField()
+    fecha = serializers.DateTimeField()
 
-    def validate_item_id(self, value):
-        item = Item.objects(id=value, is_active=True).first()
-        if not item:
-            raise serializers.ValidationError(
-                "El item no existe o está inactivo"
-            )
-        return item
+    # =========================
+    # SERIALIZERS CUSTOM
+    # =========================
+    def get_item(self, obj):
+        return {
+            "id": str(obj.item.id),
+            "codigo": obj.item.codigo,
+            "nombre": obj.item.nombre,
+        }
 
-    def validate_responsable_id(self, value):
-        user = User.objects(id=value, is_active=True).first()
-        if not user:
-            raise serializers.ValidationError(
-                "El responsable no existe o está inactivo"
-            )
-        return user
+    def get_responsable(self, obj):
+        return {
+            "id": str(obj.responsable.id),
+            "username": obj.responsable.username,
+            "rol": obj.responsable.rol,
+        }
 
-    def create(self, validated_data):
-        item = validated_data.pop("item_id")
-        responsable = validated_data.pop("responsable_id")
+    def _serialize_location(self, location: dict):
+        return {
+            "tipo": location.get("tipo"),
+            "id": str(location.get("id")) if isinstance(location.get("id"), ObjectId) else location.get("id"),
+        }
 
-        return Movement.objects.create(
-            item=item,
-            responsable=responsable,
-            **validated_data
-        )
+    def get_origen(self, obj):
+        return self._serialize_location(obj.origen)
+
+    def get_destino(self, obj):
+        return self._serialize_location(obj.destino)

@@ -3,5 +3,4 @@ djangorestframework
 djangorestframework-simplejwt
 mongoengine
 django-environ
-mongoengine
 

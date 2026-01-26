@@ -15,9 +15,10 @@ services:
     environment:
       DJANGO_SETTINGS_MODULE: config.settings
       PYTHONPATH: /app
-    command: sleep infinity
+    command: python manage.py runserver 0.0.0.0:8000
     depends_on:
       - mongo
+
 
   mongo:
     image: mongo:7

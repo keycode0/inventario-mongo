@@ -1,7 +1,86 @@
+from bson import ObjectId
 from rest_framework import serializers
+
 from config.apps.inventory.models.facility import Facility
 from config.apps.inventory.models.customer import Customer
+from config.apps.inventory.models.item import Item
 from config.apps.users.models.user import User
+
+
+from bson import ObjectId
+from rest_framework import serializers
+
+
+class FacilityItemSerializer(serializers.Serializer):
+    """
+    Item planificado dentro de una instalación
+    """
+
+    item_id = serializers.CharField()
+    origen_bodega_id = serializers.CharField()
+
+    accion_final = serializers.ChoiceField(
+        choices=["queda_cliente", "retorna_bodega"],
+        required=False,
+        allow_null=True
+    )
+
+    bodega_retorno_id = serializers.CharField(
+        required=False,
+        allow_null=True
+    )
+
+    # =========================
+    # VALIDACIONES DE IDS
+    # =========================
+    def validate_item_id(self, value):
+        if not ObjectId.is_valid(value):
+            raise serializers.ValidationError("item_id inválido")
+        return value
+
+    def validate_origen_bodega_id(self, value):
+        if not ObjectId.is_valid(value):
+            raise serializers.ValidationError("origen_bodega_id inválido")
+        return value
+
+    # =========================
+    # VALIDACIÓN CONTEXTUAL
+    # =========================
+    def validate(self, data):
+        """
+        La validación completa solo se exige al finalizar la instalación
+        """
+        accion = data.get("accion_final")
+        is_finishing = self.context.get("is_finishing", False)
+
+        # 🔹 Antes de finalizar, accion_final puede ser null
+        if not is_finishing:
+            return data
+
+        # 🔹 Al finalizar, accion_final ES OBLIGATORIO
+        if not accion:
+            raise serializers.ValidationError(
+                "accion_final es obligatoria al finalizar la instalación"
+            )
+
+        if accion == "retorna_bodega":
+            bodega_id = data.get("bodega_retorno_id")
+            if not bodega_id:
+                raise serializers.ValidationError(
+                    "bodega_retorno_id es obligatorio cuando retorna a bodega"
+                )
+            if not ObjectId.is_valid(bodega_id):
+                raise serializers.ValidationError(
+                    "bodega_retorno_id inválido"
+                )
+
+        if accion == "queda_cliente" and data.get("bodega_retorno_id"):
+            raise serializers.ValidationError(
+                "bodega_retorno_id no debe existir cuando queda en cliente"
+            )
+
+        return data
+
 
 
 class FacilitySerializer(serializers.Serializer):
@@ -12,22 +91,28 @@ class FacilitySerializer(serializers.Serializer):
     cliente_id = serializers.CharField(write_only=True)
     tecnico_id = serializers.CharField(write_only=True)
 
-    direccion_instalacion = serializers.CharField(required=False, allow_blank=True)
+    direccion_instalacion = serializers.CharField(
+        required=False,
+        allow_blank=True
+    )
 
     estado = serializers.ChoiceField(
         choices=["planificada", "en_proceso", "finalizada", "cancelada"],
-        default="planificada"
+        read_only=True
     )
 
     fecha_programada = serializers.DateTimeField(required=False)
-    fecha_inicio = serializers.DateTimeField(required=False)
-    fecha_fin = serializers.DateTimeField(required=False)
+    fecha_inicio = serializers.DateTimeField(read_only=True)
+    fecha_fin = serializers.DateTimeField(read_only=True)
 
-    items_planificados = serializers.ListField(
-        child=serializers.DictField(),
+    items_planificados = FacilityItemSerializer(
+        many=True,
         required=False
     )
 
+    # =========================
+    # VALIDACIONES DE RELACIONES
+    # =========================
     def validate_cliente_id(self, value):
         cliente = Customer.objects(id=value, is_active=True).first()
         if not cliente:
@@ -37,29 +122,81 @@ class FacilitySerializer(serializers.Serializer):
         return cliente
 
     def validate_tecnico_id(self, value):
-        tecnico = User.objects(id=value, is_active=True).first()
+        tecnico = User.objects(
+            id=value,
+            is_active=True,
+            rol="tecnico"
+        ).first()
         if not tecnico:
             raise serializers.ValidationError(
                 "Técnico no existe o está inactivo"
             )
         return tecnico
 
+    # =========================
+    # VALIDACIÓN GLOBAL
+    # =========================
+    def validate(self, data):
+        items = data.get("items_planificados")
+
+        if not items:
+            return data
+
+        seen_items = set()
+        estado_actual = (
+            self.instance.estado if self.instance else "planificada"
+        )
+
+        for item in items:
+            item_id = item["item_id"]
+
+            if item_id in seen_items:
+                raise serializers.ValidationError(
+                    f"Item {item_id} está duplicado"
+                )
+            seen_items.add(item_id)
+
+            # 🔒 Antes de finalizar NO se exige accion_final
+            if estado_actual != "en_proceso":
+                if item.get("accion_final"):
+                    raise serializers.ValidationError(
+                        "accion_final solo puede definirse al finalizar la instalación"
+                    )
+
+        return data
+
+    # =========================
+    # CREATE
+    # =========================
     def create(self, validated_data):
         cliente = validated_data.pop("cliente_id")
         tecnico = validated_data.pop("tecnico_id")
 
+        items = validated_data.pop("items_planificados", [])
+
         return Facility.objects.create(
             cliente=cliente,
             tecnico=tecnico,
+            items_planificados=items,
             **validated_data
         )
 
+    # =========================
+    # UPDATE
+    # =========================
     def update(self, instance, validated_data):
-        if "cliente_id" in validated_data:
-            instance.cliente = validated_data.pop("cliente_id")
+        # 🔒 No permitir cambio de cliente ni técnico
+        validated_data.pop("cliente_id", None)
+        validated_data.pop("tecnico_id", None)
 
-        if "tecnico_id" in validated_data:
-            instance.tecnico = validated_data.pop("tecnico_id")
+        # 🔒 No permitir editar items fuera de planificada
+        if (
+            "items_planificados" in validated_data
+            and instance.estado != "planificada"
+        ):
+            raise serializers.ValidationError(
+                "No se pueden modificar items en una instalación en proceso o finalizada"
+            )
 
         for field, value in validated_data.items():
             setattr(instance, field, value)
