@@ -35,6 +35,17 @@ class ItemListCreateView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
+        # 🔹 filtro por ubicación actual (bodega)
+        ubicacion_id = request.query_params.get("ubicacion_actual_id")
+        if ubicacion_id:
+            try:
+                queryset = queryset.filter(ubicacion_actual_id=ubicacion_id)
+            except Exception:
+                return Response(
+                    {"detail": "Invalid ubicacion_actual_id"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         serializer = ItemSerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
