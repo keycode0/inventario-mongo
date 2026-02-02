@@ -7,10 +7,9 @@ from config.apps.inventory.models.item import Item
 from config.apps.users.models.user import User
 
 
-from bson import ObjectId
-from rest_framework import serializers
-
-
+# ======================================================
+# SERIALIZER: ITEM DENTRO DE INSTALACIÓN
+# ======================================================
 class FacilityItemSerializer(serializers.Serializer):
     """
     Item planificado dentro de una instalación
@@ -30,12 +29,19 @@ class FacilityItemSerializer(serializers.Serializer):
         allow_null=True
     )
 
-    # =========================
+    # -------------------------
     # VALIDACIONES DE IDS
-    # =========================
+    # -------------------------
     def validate_item_id(self, value):
         if not ObjectId.is_valid(value):
             raise serializers.ValidationError("item_id inválido")
+
+        item = Item.objects(id=value, is_active=True).first()
+        if not item:
+            raise serializers.ValidationError(
+                "El item no existe o está inactivo"
+            )
+
         return value
 
     def validate_origen_bodega_id(self, value):
@@ -43,21 +49,40 @@ class FacilityItemSerializer(serializers.Serializer):
             raise serializers.ValidationError("origen_bodega_id inválido")
         return value
 
-    # =========================
-    # VALIDACIÓN CONTEXTUAL
-    # =========================
+    # -------------------------
+    # VALIDACIÓN DE NEGOCIO
+    # -------------------------
     def validate(self, data):
-        """
-        La validación completa solo se exige al finalizar la instalación
-        """
+        item_id = data.get("item_id")
+        origen_bodega_id = data.get("origen_bodega_id")
+
+        item = Item.objects(id=item_id).first()
+        if not item:
+            raise serializers.ValidationError(
+                "El item no existe"
+            )
+
+        if not item.ubicacion_actual_id:
+            raise serializers.ValidationError(
+                "El item no tiene una ubicación actual definida"
+            )
+
+        if str(item.ubicacion_actual_id) != origen_bodega_id:
+            raise serializers.ValidationError(
+                "El item no se encuentra en la bodega indicada"
+            )
+
+        # -------------------------
+        # VALIDACIÓN CONTEXTUAL (FINALIZACIÓN)
+        # -------------------------
         accion = data.get("accion_final")
         is_finishing = self.context.get("is_finishing", False)
 
-        # 🔹 Antes de finalizar, accion_final puede ser null
+        # 🔹 Antes de finalizar → no exigir acción final
         if not is_finishing:
             return data
 
-        # 🔹 Al finalizar, accion_final ES OBLIGATORIO
+        # 🔹 Al finalizar → accion_final es obligatoria
         if not accion:
             raise serializers.ValidationError(
                 "accion_final es obligatoria al finalizar la instalación"
@@ -65,10 +90,12 @@ class FacilityItemSerializer(serializers.Serializer):
 
         if accion == "retorna_bodega":
             bodega_id = data.get("bodega_retorno_id")
+
             if not bodega_id:
                 raise serializers.ValidationError(
                     "bodega_retorno_id es obligatorio cuando retorna a bodega"
                 )
+
             if not ObjectId.is_valid(bodega_id):
                 raise serializers.ValidationError(
                     "bodega_retorno_id inválido"
@@ -82,7 +109,9 @@ class FacilityItemSerializer(serializers.Serializer):
         return data
 
 
-
+# ======================================================
+# SERIALIZER: INSTALACIÓN
+# ======================================================
 class FacilitySerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
 
@@ -110,9 +139,9 @@ class FacilitySerializer(serializers.Serializer):
         required=False
     )
 
-    # =========================
+    # -------------------------
     # VALIDACIONES DE RELACIONES
-    # =========================
+    # -------------------------
     def validate_cliente_id(self, value):
         cliente = Customer.objects(id=value, is_active=True).first()
         if not cliente:
@@ -133,9 +162,9 @@ class FacilitySerializer(serializers.Serializer):
             )
         return tecnico
 
-    # =========================
+    # -------------------------
     # VALIDACIÓN GLOBAL
-    # =========================
+    # -------------------------
     def validate(self, data):
         items = data.get("items_planificados")
 
@@ -156,7 +185,7 @@ class FacilitySerializer(serializers.Serializer):
                 )
             seen_items.add(item_id)
 
-            # 🔒 Antes de finalizar NO se exige accion_final
+            # 🔒 Solo permitir accion_final al finalizar
             if estado_actual != "en_proceso":
                 if item.get("accion_final"):
                     raise serializers.ValidationError(
@@ -165,13 +194,12 @@ class FacilitySerializer(serializers.Serializer):
 
         return data
 
-    # =========================
+    # -------------------------
     # CREATE
-    # =========================
+    # -------------------------
     def create(self, validated_data):
         cliente = validated_data.pop("cliente_id")
         tecnico = validated_data.pop("tecnico_id")
-
         items = validated_data.pop("items_planificados", [])
 
         return Facility.objects.create(
@@ -181,15 +209,13 @@ class FacilitySerializer(serializers.Serializer):
             **validated_data
         )
 
-    # =========================
+    # -------------------------
     # UPDATE
-    # =========================
+    # -------------------------
     def update(self, instance, validated_data):
-        # 🔒 No permitir cambio de cliente ni técnico
         validated_data.pop("cliente_id", None)
         validated_data.pop("tecnico_id", None)
 
-        # 🔒 No permitir editar items fuera de planificada
         if (
             "items_planificados" in validated_data
             and instance.estado != "planificada"

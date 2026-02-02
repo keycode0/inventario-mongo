@@ -16,7 +16,7 @@ class SubCategoryListCreateView(APIView):
         category_id = request.query_params.get("category_id")
         if category_id:
             try:
-                queryset = queryset.filter(categoria_id=category_id)
+                queryset = queryset.filter(categoria=category_id)
             except Exception:
                 return Response(
                     {"detail": "Invalid category_id"},

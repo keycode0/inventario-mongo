@@ -103,10 +103,7 @@ REST_FRAMEWORK = {
         "config.apps.users.authentication.JWTAuthentication",
     ],
 
-    # Todos los endpoints requieren usuario autenticado
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
+    "DEFAULT_PERMISSION_CLASSES": [],
 
     # API JSON only (profesional)
     "DEFAULT_PARSER_CLASSES": [

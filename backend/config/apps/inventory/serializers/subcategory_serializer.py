@@ -5,9 +5,19 @@ from config.apps.inventory.models.category import Category
 
 class SubCategorySerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
-
     nombre = serializers.CharField()
+
+    # Escritura
     categoria_id = serializers.CharField(write_only=True)
+
+    # Lectura
+    categoria = serializers.SerializerMethodField(read_only=True)
+
+    def get_categoria(self, obj):
+        return {
+            "id": str(obj.categoria.id),
+            "nombre": obj.categoria.nombre_categoria,
+        }
 
     def validate_categoria_id(self, value):
         categoria = Category.objects(id=value, is_active=True).first()

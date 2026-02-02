@@ -57,7 +57,7 @@ from config.apps.inventory.views.vehicle_views import (
 )
 
 # =========================
-# FACILITY (INSTALACIONES)
+# FACILITY (INSTALACIONES - CRUD)
 # =========================
 from config.apps.inventory.views.facility_views import (
     FacilityListCreateView,
@@ -65,7 +65,14 @@ from config.apps.inventory.views.facility_views import (
 )
 
 # =========================
-# FACILITY ACTIONS (ORQUESTACIÓN)
+# FACILITY DETAIL (ENRICHED)
+# =========================
+from config.apps.inventory.views.facility_enriched_detail_view import (
+    FacilityEnrichedDetailView,
+)
+
+# =========================
+# FACILITY ACTIONS (FLUJO DE NEGOCIO)
 # =========================
 from config.apps.inventory.views.facility_start_view import FacilityStartView
 from config.apps.inventory.views.facility_finish_view import FacilityFinishView
@@ -82,53 +89,126 @@ urlpatterns = [
     # =========================
     # CATEGORY
     # =========================
-    path("categories/", CategoryListCreateView.as_view(), name="category-list-create"),
-    path("categories/<str:pk>/", CategoryDetailView.as_view(), name="category-detail"),
+    path(
+        "categories/",
+        CategoryListCreateView.as_view(),
+        name="category-list-create",
+    ),
+    path(
+        "categories/<str:pk>/",
+        CategoryDetailView.as_view(),
+        name="category-detail",
+    ),
 
     # =========================
     # SUBCATEGORY
     # =========================
-    path("subcategories/", SubCategoryListCreateView.as_view(), name="subcategory-list-create"),
-    path("subcategories/<str:pk>/", SubCategoryDetailView.as_view(), name="subcategory-detail"),
+    path(
+        "subcategories/",
+        SubCategoryListCreateView.as_view(),
+        name="subcategory-list-create",
+    ),
+    path(
+        "subcategories/<str:pk>/",
+        SubCategoryDetailView.as_view(),
+        name="subcategory-detail",
+    ),
 
     # =========================
     # ITEMS
     # =========================
-    path("items/", ItemListCreateView.as_view(), name="item-list-create"),
-    path("items/<str:pk>/", ItemDetailView.as_view(), name="item-detail"),
+    path(
+        "items/",
+        ItemListCreateView.as_view(),
+        name="item-list-create",
+    ),
+    path(
+        "items/<str:pk>/",
+        ItemDetailView.as_view(),
+        name="item-detail",
+    ),
 
     # =========================
     # STORES (BODEGAS)
     # =========================
-    path("stores/", StoreListCreateView.as_view(), name="store-list-create"),
-    path("stores/<str:pk>/", StoreDetailView.as_view(), name="store-detail"),
+    path(
+        "stores/",
+        StoreListCreateView.as_view(),
+        name="store-list-create",
+    ),
+    path(
+        "stores/<str:pk>/",
+        StoreDetailView.as_view(),
+        name="store-detail",
+    ),
 
     # =========================
     # CUSTOMERS
     # =========================
-    path("customers/", CustomerListCreateView.as_view(), name="customer-list-create"),
-    path("customers/<str:pk>/", CustomerDetailView.as_view(), name="customer-detail"),
+    path(
+        "customers/",
+        CustomerListCreateView.as_view(),
+        name="customer-list-create",
+    ),
+    path(
+        "customers/<str:pk>/",
+        CustomerDetailView.as_view(),
+        name="customer-detail",
+    ),
 
     # =========================
     # SUPPLIERS
     # =========================
-    path("suppliers/", SupplierListCreateView.as_view(), name="supplier-list-create"),
-    path("suppliers/<str:pk>/", SupplierDetailView.as_view(), name="supplier-detail"),
+    path(
+        "suppliers/",
+        SupplierListCreateView.as_view(),
+        name="supplier-list-create",
+    ),
+    path(
+        "suppliers/<str:pk>/",
+        SupplierDetailView.as_view(),
+        name="supplier-detail",
+    ),
 
     # =========================
     # VEHICLES
     # =========================
-    path("vehicles/", VehicleListCreateView.as_view(), name="vehicle-list-create"),
-    path("vehicles/<str:pk>/", VehicleDetailView.as_view(), name="vehicle-detail"),
+    path(
+        "vehicles/",
+        VehicleListCreateView.as_view(),
+        name="vehicle-list-create",
+    ),
+    path(
+        "vehicles/<str:pk>/",
+        VehicleDetailView.as_view(),
+        name="vehicle-detail",
+    ),
 
     # =========================
-    # FACILITIES (CRUD CONTROLADO)
+    # FACILITIES (CRUD)
     # =========================
-    path("facilities/", FacilityListCreateView.as_view(), name="facility-list-create"),
-    path("facilities/<str:pk>/", FacilityDetailView.as_view(), name="facility-detail"),
+    path(
+        "facilities/",
+        FacilityListCreateView.as_view(),
+        name="facility-list-create",
+    ),
+    path(
+        "facilities/<str:pk>/",
+        FacilityDetailView.as_view(),
+        name="facility-detail",
+    ),
 
     # =========================
-    # FACILITY ACTIONS (FLUJO DE NEGOCIO)
+    # FACILITY DETAIL (ENRICHED - SOLO GET)
+    # =========================
+    path(
+        "facilities/<str:pk>/detail/",
+        FacilityEnrichedDetailView.as_view(),
+        name="facility-detail-enriched",
+    ),
+
+    # =========================
+    # FACILITY ACTIONS
     # =========================
     path(
         "facilities/<str:pk>/start/",
@@ -142,7 +222,7 @@ urlpatterns = [
     ),
 
     # =========================
-    # MOVEMENTS (AUDITORÍA - SOLO GET)
+    # MOVEMENTS (AUDITORÍA)
     # =========================
     path(
         "movements/",

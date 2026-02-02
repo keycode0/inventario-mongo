@@ -6,8 +6,11 @@ class CustomerSerializer(serializers.Serializer):
     id = serializers.CharField(read_only=True)
 
     nombre_cliente = serializers.CharField()
-    sucursal = serializers.CharField(required=False, allow_blank=True)
+    sucursal = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     ubicacion = serializers.DictField()
+
+    # 🔑 CLAVE: exponer soft delete
+    is_active = serializers.BooleanField(read_only=True)
 
     def create(self, validated_data):
         return Customer.objects.create(**validated_data)

@@ -22,7 +22,7 @@ class Item(BaseDocument):
         default="operativo"
     )
 
-    ubicacion_actual_id = me.ObjectIdField(required=False)
+    ubicacion_actual_id = me.ObjectIdField(required=True)
 
     meta = {
         "collection": "items",
