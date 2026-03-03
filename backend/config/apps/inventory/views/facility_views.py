@@ -5,7 +5,7 @@ from rest_framework import status
 from config.apps.inventory.models.facility import Facility
 from config.apps.inventory.serializers.facility_serializer import FacilitySerializer
 from config.apps.inventory.services.facility_service import (
-    soft_delete_facility,
+    FacilityService,
     ALLOWED_FACILITY_STATES,
 )
 from config.apps.users.permissions.facility_permissions import FacilityPermission
@@ -107,5 +107,5 @@ class FacilityDetailView(APIView):
                 status=status.HTTP_404_NOT_FOUND
             )
 
-        soft_delete_facility(facility)
+        FacilityService.soft_delete_facility(facility)
         return Response(status=status.HTTP_204_NO_CONTENT)

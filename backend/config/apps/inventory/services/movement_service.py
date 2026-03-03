@@ -5,22 +5,33 @@ from config.apps.inventory.models.item import Item
 from config.apps.users.models.user import User
 
 
-ALLOWED_MOVEMENT_TYPES = [
-    "INGRESO_COMPRA",
-    "SALIDA_INSTALACION",
-    "INSTALADO_CLIENTE",
-    "RETORNO_INSTALACION",
-    "TRASLADO_BODEGA",
-    "ENVIO_REPARACION",
-    "BAJA",
-]
+from enum import Enum
+
+class MovementType(str, Enum):
+    INGRESO_COMPRA = "INGRESO_COMPRA"
+    SALIDA_INSTALACION = "SALIDA_INSTALACION"
+    INSTALADO_CLIENTE = "INSTALADO_CLIENTE"
+    RETORNO_INSTALACION = "RETORNO_INSTALACION"
+    TRASLADO_BODEGA = "TRASLADO_BODEGA"
+    ENVIO_REPARACION = "ENVIO_REPARACION"
+    BAJA = "BAJA"
+
+ALLOWED_MOVEMENT_TYPES = [m.value for m in list(MovementType)]
 
 
 class MovementServiceError(ValueError):
     pass
 
 
-def _validate_endpoint(data: dict, name: str):
+from dataclasses import dataclass
+from typing import Any
+
+@dataclass
+class LocationData:
+    tipo: str
+    id: Any
+
+def _validate_endpoint(data: dict, name: str) -> LocationData:
     if not isinstance(data, dict):
         raise MovementServiceError(f"{name} debe ser un diccionario")
 
@@ -28,6 +39,7 @@ def _validate_endpoint(data: dict, name: str):
         raise MovementServiceError(
             f"{name} debe contener 'tipo' e 'id'"
         )
+    return LocationData(tipo=data["tipo"], id=data["id"])
 
 
 def register_movement(

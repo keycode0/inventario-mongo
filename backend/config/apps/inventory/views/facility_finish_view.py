@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework import status
 
 from config.apps.inventory.models.facility import Facility
-from config.apps.inventory.services.facility_actions import finish_facility, FacilityActionError
+from config.apps.inventory.services.facility_service import FacilityService, FacilityServiceError
 from config.apps.users.permissions.facility_permissions import FacilityPermission
 
 
@@ -40,11 +40,11 @@ class FacilityFinishView(APIView):
             item["bodega_retorno_id"] = data.get("bodega_retorno_id")
 
         try:
-            finish_facility(
+            FacilityService.finish_facility(
                 facility=facility,
                 responsable=request.user
             )
-        except FacilityActionError as e:
+        except FacilityServiceError as e:
             return Response(
                 {"detail": str(e)},
                 status=status.HTTP_400_BAD_REQUEST
